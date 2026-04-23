@@ -4,6 +4,7 @@ import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
 import csv
+import difflib
 import io
 from typing import Dict, List, Tuple
 
@@ -396,6 +397,16 @@ st.markdown(
             background: #ffffff !important;
             color: var(--myntra-text) !important;
             border: 1px solid var(--myntra-border) !important;
+            direction: ltr !important;
+            text-align: left !important;
+            unicode-bidi: plaintext !important;
+            caret-color: var(--myntra-text) !important;
+        }
+
+        input, textarea {
+            direction: ltr !important;
+            text-align: left !important;
+            unicode-bidi: plaintext !important;
         }
 
         [data-testid="stTextInput"] label,
@@ -860,6 +871,126 @@ catalog = [
         'color': 'Ash brown',
         'color_family': 'brown',
     },
+    {
+        'id': 'MN009',
+        'name': 'Floral Printed Straight Kurti',
+        'category': 'Ethnic Wear',
+        'price': 1499,
+        'style_attributes': ['kurti', 'ethnic', 'festive', 'everyday', 'women', 'comfort'],
+        'season': 'All season',
+        'occasion': 'Casual',
+        'material': 'Rayon',
+        'color': 'Rose pink',
+        'color_family': 'pink',
+    },
+    {
+        'id': 'MN010',
+        'name': 'A Line Cotton Kurta Set',
+        'category': 'Ethnic Wear',
+        'price': 2199,
+        'style_attributes': ['kurti', 'ethnic', 'festive', 'office', 'women', 'breathable'],
+        'season': 'Summer',
+        'occasion': 'Workday',
+        'material': 'Cotton',
+        'color': 'Teal',
+        'color_family': 'blue',
+    },
+    {
+        'id': 'MN011',
+        'name': 'Sequined Party Midi Dress',
+        'category': 'Dresses',
+        'price': 2899,
+        'style_attributes': ['party', 'evening', 'dressy', 'night', 'women', 'premium'],
+        'season': 'All season',
+        'occasion': 'Evening',
+        'material': 'Poly georgette',
+        'color': 'Wine',
+        'color_family': 'red',
+    },
+    {
+        'id': 'MN012',
+        'name': 'Classic Formal Blazer',
+        'category': 'Outerwear',
+        'price': 3499,
+        'style_attributes': ['formal', 'office', 'workwear', 'smart', 'sharp'],
+        'season': 'All season',
+        'occasion': 'Workday',
+        'material': 'Poly viscose',
+        'color': 'Black',
+        'color_family': 'black',
+    },
+    {
+        'id': 'MN013',
+        'name': 'High Rise Blue Jeans',
+        'category': 'Bottomwear',
+        'price': 1999,
+        'style_attributes': ['casual', 'everyday', 'denim', 'weekend', 'comfort'],
+        'season': 'All season',
+        'occasion': 'Casual',
+        'material': 'Stretch denim',
+        'color': 'Indigo',
+        'color_family': 'blue',
+    },
+    {
+        'id': 'MN014',
+        'name': 'Cozy Oversized Hoodie',
+        'category': 'Topwear',
+        'price': 1799,
+        'style_attributes': ['winter', 'casual', 'comfort', 'streetwear', 'layer'],
+        'season': 'Winter',
+        'occasion': 'Casual',
+        'material': 'Cotton fleece',
+        'color': 'Lavender',
+        'color_family': 'pink',
+    },
+    {
+        'id': 'MN015',
+        'name': 'Festive Silk Blend Saree',
+        'category': 'Ethnic Wear',
+        'price': 3999,
+        'style_attributes': ['saree', 'ethnic', 'wedding', 'festive', 'traditional', 'women'],
+        'season': 'All season',
+        'occasion': 'Festive',
+        'material': 'Silk blend',
+        'color': 'Royal maroon',
+        'color_family': 'red',
+    },
+    {
+        'id': 'MN016',
+        'name': 'Resort Co Ord Beach Set',
+        'category': 'Topwear',
+        'price': 2399,
+        'style_attributes': ['beach', 'resort', 'vacation', 'summer', 'breezy', 'lightweight'],
+        'season': 'Summer',
+        'occasion': 'Casual',
+        'material': 'Viscose',
+        'color': 'Sand beige',
+        'color_family': 'beige',
+    },
+    {
+        'id': 'MN017',
+        'name': 'Linen Beach Shirt',
+        'category': 'Shirt',
+        'price': 1899,
+        'style_attributes': ['beach', 'vacation', 'summer', 'breezy', 'cotton', 'relaxed'],
+        'season': 'Summer',
+        'occasion': 'Casual',
+        'material': 'Linen cotton',
+        'color': 'Sea blue',
+        'color_family': 'blue',
+    },
+    {
+        'id': 'MN018',
+        'name': 'Flowy Beach Maxi Dress',
+        'category': 'Dresses',
+        'price': 2699,
+        'style_attributes': ['beach', 'resort', 'vacation', 'summer', 'dress', 'breezy'],
+        'season': 'Summer',
+        'occasion': 'Casual',
+        'material': 'Rayon',
+        'color': 'Coral',
+        'color_family': 'red',
+    },
 ]
 
 
@@ -943,7 +1074,34 @@ def tokenize(text: str) -> List[str]:
     return [term for term in raw_terms if term not in STOP_WORDS]
 
 
-def score_item(query_terms: List[str], item: Dict) -> Tuple[float, List[str]]:
+def expand_intent_terms(query_terms: List[str]) -> List[str]:
+    intent_map = {
+        'kurti': ['ethnic', 'women', 'festive', 'comfort'],
+        'ethnic': ['kurti', 'festive', 'traditional', 'women'],
+        'wedding': ['festive', 'ethnic', 'premium', 'occasion'],
+        'saree': ['ethnic', 'wedding', 'festive', 'traditional'],
+        'gym': ['active', 'training', 'athleisure', 'comfort'],
+        'workout': ['active', 'training', 'athleisure', 'comfort'],
+        'office': ['workday', 'formal', 'smart casual'],
+        'formal': ['office', 'workwear', 'sharp'],
+        'party': ['evening', 'trend forward', 'premium'],
+        'dress': ['party', 'evening', 'women'],
+        'jeans': ['casual', 'denim', 'everyday'],
+        'hoodie': ['winter', 'casual', 'streetwear', 'comfort'],
+        'beach': ['vacation', 'resort', 'summer', 'breezy', 'lightweight'],
+        'vacation': ['beach', 'resort', 'summer', 'breezy'],
+        'resort': ['beach', 'vacation', 'summer', 'breezy'],
+        'wear': ['outfit', 'style', 'look'],
+        'kurta': ['kurti', 'ethnic', 'traditional', 'festive'],
+        'travel': ['commute', 'functional', 'lightweight'],
+    }
+    expanded = list(query_terms)
+    for term in query_terms:
+        expanded.extend(intent_map.get(term, []))
+    return list(dict.fromkeys(expanded))
+
+
+def score_item(query_text: str, query_terms: List[str], item: Dict) -> Tuple[float, List[str]]:
     pool = ' '.join(
         [
             item['name'],
@@ -958,6 +1116,10 @@ def score_item(query_terms: List[str], item: Dict) -> Tuple[float, List[str]]:
 
     matched_terms = [term for term in query_terms if term in pool]
     core_match = len(set(matched_terms)) / max(len(set(query_terms)), 1)
+    pool_tokens = tokenize(pool)
+    prefix_hits = [term for term in query_terms if any(tok.startswith(term[:3]) for tok in pool_tokens if len(term) >= 3)]
+    prefix_score = len(set(prefix_hits)) / max(len(set(query_terms)), 1)
+    fuzzy_score = difflib.SequenceMatcher(None, query_text.lower(), pool).ratio()
 
     business_bonus = 0.0
     if 'rain' in query_terms or 'rainy' in query_terms or 'monsoon' in query_terms:
@@ -968,8 +1130,8 @@ def score_item(query_terms: List[str], item: Dict) -> Tuple[float, List[str]]:
     if 'office' in query_terms and item['occasion'].lower() == 'workday':
         business_bonus += 0.15
 
-    final_score = min(core_match + business_bonus, 1.0)
-    return final_score, matched_terms
+    final_score = min((core_match * 0.65) + (prefix_score * 0.2) + (fuzzy_score * 0.15) + business_bonus, 1.0)
+    return final_score, sorted(set(matched_terms + prefix_hits))
 
 
 def explain_reasoning(query: str, item: Dict, matched_terms: List[str], score: float) -> List[str]:
@@ -986,8 +1148,9 @@ def explain_reasoning(query: str, item: Dict, matched_terms: List[str], score: f
     matched = sorted(set(matched_terms))
     focus_terms = ', '.join(matched[:2]) if matched else 'style intent'
 
+    confidence = max(round(score * 100, 0), 35)
     return [
-        f'Stylist confidence {round(score * 100, 0):.0f} percent',
+        f'Stylist confidence {confidence:.0f} percent',
         f'Closest to your ask on {focus_terms}',
         stylist_reason,
     ]
@@ -995,9 +1158,10 @@ def explain_reasoning(query: str, item: Dict, matched_terms: List[str], score: f
 
 def retrieve_items(query: str, k: int = 3) -> List[Dict]:
     terms = tokenize(query)
+    expanded_terms = expand_intent_terms(terms)
     scored = []
     for item in catalog:
-        score, matched_terms = score_item(terms, item)
+        score, matched_terms = score_item(query, expanded_terms, item)
         scored.append({**item, 'score': score, 'matched_terms': matched_terms})
 
     scored.sort(key=lambda x: x['score'], reverse=True)
@@ -1012,19 +1176,50 @@ def retrieve_items(query: str, k: int = 3) -> List[Dict]:
             'office': ['office', 'smart casual', 'workday', 'breathable'],
             'travel': ['travel', 'functional', 'all day comfort', 'lightweight'],
         }
-        expanded_terms = []
-        for term in terms:
-            expanded_terms.extend(default_terms.get(term, []))
+        rescue_terms = []
+        for term in expanded_terms:
+            rescue_terms.extend(default_terms.get(term, []))
 
-        if expanded_terms:
+        if rescue_terms:
             rescored = []
             for item in catalog:
                 pool = ' '.join(item['style_attributes']).lower()
-                matches = [term for term in expanded_terms if term in pool]
-                rescue_score = len(set(matches)) / max(len(set(expanded_terms)), 1)
+                matches = [term for term in rescue_terms if term in pool]
+                rescue_score = len(set(matches)) / max(len(set(rescue_terms)), 1)
                 rescored.append({**item, 'score': rescue_score, 'matched_terms': matches})
             rescored.sort(key=lambda x: x['score'], reverse=True)
             return rescored[:k]
+
+        # Query-specific fallback for unknown intents so results do not repeat.
+        if terms:
+            seeded = []
+            for item in catalog:
+                pool_terms = tokenize(
+                    ' '.join(
+                        [
+                            item['name'],
+                            item['category'],
+                            item['season'],
+                            item['occasion'],
+                            item['material'],
+                            item['color'],
+                            ' '.join(item['style_attributes']),
+                        ]
+                    )
+                )
+                overlap_chars = sum(1 for t in terms for p in pool_terms if t[:3] == p[:3])
+                seeded_score = overlap_chars / max(len(terms), 1)
+                seeded.append({**item, 'score': seeded_score, 'matched_terms': terms[:2]})
+
+            # Stable query hash to rotate ties and avoid same order for every unknown query.
+            query_hash = sum(ord(c) for c in query.lower())
+            seeded.sort(
+                key=lambda x: (
+                    -x['score'],
+                    abs((catalog.index(next(c for c in catalog if c['id'] == x['id'])) - (query_hash % len(catalog)))),
+                )
+            )
+            return seeded[:k]
 
     return top
 
@@ -1300,6 +1495,9 @@ def build_item_hint_from_query(query_terms: List[str], expanded_terms: List[str]
         return 'Water Resistant Urban Jacket'
     if any(term in joined for term in ['summer', 'hot', 'beach']):
         return 'Lightweight Linen Blend Shirt'
+    if query_terms:
+        top = ' '.join(query_terms[:2]).title()
+        return f'{top} Style Pick'
     return 'Smart Casual Everyday Top'
 
 
